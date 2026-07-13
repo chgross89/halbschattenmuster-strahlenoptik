@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Interaktive 3D-Strahlenoptik v13g</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      background: #f5f5f5;
+      color: #222;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 12px;
+      padding: 12px;
+      box-sizing: border-box;
+      height: 100vh;
+    }
+    .panel {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      box-sizing: border-box;
+    }
+    .controls {
+      overflow-y: auto;
+    }
+    .plots {
+      display: grid;
+      grid-template-columns: 1.25fr 0.9fr;
+      gap: 12px;
+      min-width: 0;
+      min-height: 0;
+    }
+    #plot3d, #plotScreen {
+      width: 100%;
+      height: calc(100vh - 48px);
+    }
+    h3 {
+      margin: 12px 0 8px 0;
+      font-size: 14px;
+      font-weight: 650;
+    }
+    .control {
+      margin-bottom: 10px;
+    }
+    .control label {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+      margin-bottom: 3px;
+    }
+    .control input[type=range],
+    .control select {
+      width: 100%;
+    }
+    input:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .value {
+      font-variant-numeric: tabular-nums;
+      color: #555;
+    }
+    .metric {
+      font-size: 14px;
+      margin: 0 0 10px 0;
+      padding: 8px;
+      background: #eef3ff;
+      border: 1px solid #d7e0ff;
+      border-radius: 8px;
+    }
+    .metric strong {
+      font-size: 22px;
+    }
+    .legendbox {
+      font-size: 12px;
+      line-height: 1.35;
+      background: #fafafa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 8px;
+      margin-top: 6px;
+    }
+    .legendbox div {
+      margin: 4px 0;
+    }
+    .legend-symbol {
+      display: inline-block;
+      min-width: 58px;
+      font-weight: 700;
+    }
+    @media (max-width: 1050px) {
+      .container {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .plots {
+        grid-template-columns: 1fr;
+      }
+      #plot3d, #plotScreen {
+        height: 520px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="panel controls">
+    <div class="metric">
+      relative Helligkeit:<br>
+      <strong id="brightnessText">–</strong><br>
+      <span id="brightnessFraction" style="font-size:13px;"></span>
+    </div>
+
+    <h3>Schirmpunkt</h3>
+    <div class="control">
+      <label><span>X</span><span class="value" id="X0v"></span></label>
+      <input id="X0" type="range" min="-8" max="8" step="0.1" value="0">
+    </div>
+    <div class="control">
+      <label><span>Y</span><span class="value" id="Y0v"></span></label>
+      <input id="Y0" type="range" min="-8" max="8" step="0.1" value="0">
+    </div>
+
+    <div class="control" style="margin-top:8px;">
+      <label style="justify-content:flex-start; gap:8px;">
+        <input id="lineMode" type="checkbox">
+        <span>entlang einer Linie bewegen</span>
+      </label>
+    </div>
+    <div class="control">
+      <label><span>Linienmitte X</span><span class="value" id="lineCXv"></span></label>
+      <input id="lineCX" type="range" min="-8" max="8" step="0.1" value="0">
+    </div>
+    <div class="control">
+      <label><span>Linienmitte Y</span><span class="value" id="lineCYv"></span></label>
+      <input id="lineCY" type="range" min="-8" max="8" step="0.1" value="0">
+    </div>
+    <div class="control">
+      <label><span>Richtung</span><span class="value" id="lineAnglev"></span></label>
+      <input id="lineAngle" type="range" min="0" max="180" step="1" value="0">
+    </div>
+    <div class="control">
+      <label><span>Position auf Linie</span><span class="value" id="lineSv"></span></label>
+      <input id="lineS" type="range" min="-12" max="12" step="0.1" value="0">
+    </div>
+
+    <h3>Öffnung</h3>
+    <div class="control">
+      <label><span>Form</span></label>
+      <select id="shape">
+        <option value="diamond" selected>Raute</option>
+        <option value="triangle">Dreieck</option>
+        <option value="circle">Kreis</option>
+        <option value="asymmetric">asymmetrisch</option>
+        <option value="fshape">Buchstabe F</option>
+      </select>
+    </div>
+    <div class="control">
+      <label><span>Größe</span><span class="value" id="rv"></span></label>
+      <input id="r" type="range" min="0.5" max="6" step="0.1" value="3">
+    </div>
+    <div class="control">
+      <label><span>Verschiebung x</span><span class="value" id="apXv"></span></label>
+      <input id="apX" type="range" min="-5" max="5" step="0.1" value="0">
+    </div>
+    <div class="control">
+      <label><span>Verschiebung y</span><span class="value" id="apYv"></span></label>
+      <input id="apY" type="range" min="-5" max="5" step="0.1" value="0">
+    </div>
+
+    <h3>Abstände</h3>
+    <div class="control">
+      <label><span>Abstand Lichtquelle–Öffnung</span><span class="value" id="av"></span></label>
+      <input id="a" type="range" min="2" max="21" step="0.2" value="13">
+    </div>
+    <div class="control">
+      <label><span>Abstand Lichtquelle–Schirm</span><span class="value" id="Lv"></span></label>
+      <input id="L" type="range" min="8" max="60" step="0.5" value="22">
+    </div>
+
+    <h3>Lichtquelle</h3>
+    <div class="control">
+      <label><span>Breite</span><span class="value" id="sourceWidthv"></span></label>
+      <input id="sourceWidth" type="range" min="0.01" max="3" step="0.01" value="0.3">
+    </div>
+    <div class="control">
+      <label><span>Länge</span><span class="value" id="sourceHeightv"></span></label>
+      <input id="sourceHeight" type="range" min="0.5" max="15" step="0.1" value="8.5">
+    </div>
+
+    <h3>Berechnung &amp; Anzeige</h3>
+    <div class="control">
+      <label><span>Anzahl Lichtstrahlen</span><span class="value" id="rayCountv"></span></label>
+      <input id="rayCount" type="range" min="15" max="250" step="5" value="90">
+    </div>
+    <div class="control">
+      <label><span>Schirmbildauflösung</span><span class="value" id="screenResv"></span></label>
+      <input id="screenRes" type="range" min="40" max="160" step="10" value="90">
+    </div>
+
+    <h3>Schirmansicht</h3>
+    <div class="control" style="margin-top:8px;">
+      <label style="justify-content:flex-start; gap:8px;">
+        <input id="showGrad1" type="checkbox">
+        <span>Helligkeitsänderung anzeigen |∇I|</span>
+      </label>
+    </div>
+    <div class="control">
+      <label style="justify-content:flex-start; gap:8px;">
+        <input id="showGrad2" type="checkbox">
+        <span>Knick-/Kantenstärke anzeigen |∇²I|</span>
+      </label>
+    </div>
+    <div class="control">
+      <label style="justify-content:flex-start; gap:8px;">
+        <input id="showOverlay" type="checkbox">
+        <span>Beispiel-Rauten der Öffnung anzeigen</span>
+      </label>
+    </div>
+    <div class="control">
+      <label><span>Anzahl Beispiel-Rauten</span><span class="value" id="overlayCountv"></span></label>
+      <input id="overlayCount" type="range" min="1" max="25" step="1" value="5">
+    </div>
+    <div class="control">
+      <label><span>Glättung für Ableitungskarten</span><span class="value" id="smoothPassesv"></span></label>
+      <input id="smoothPasses" type="range" min="0" max="6" step="1" value="2">
+    </div>
+    <div class="legendbox">
+      <div><span class="legend-symbol">I</span>relative Helligkeit: sichtbarer Anteil der Lichtquelle</div>
+      <div><span class="legend-symbol">|∇I|</span>1. Ableitung: wo die Helligkeit stark zu- oder abnimmt</div>
+      <div><span class="legend-symbol">|∇²I|</span>2. Ableitung: wo sich die Steigung ändert, also Knicke/Kanten</div>
+      <div><span class="legend-symbol">Beispiel-Rauten</span>Beispielhafte Öffnungsbilder; Farben passen zur 3D-Ansicht</div>
+      <div><span class="legend-symbol">Glättung</span>wird auf die Ableitungskarten angewendet, um Pixel-/Abtastartefakte zu reduzieren</div>
+    </div>
+  </div>
+
+  <div class="plots">
+    <div class="panel"><div id="plot3d"></div></div>
+    <div class="panel"><div id="plotScreen"></div></div>
+  </div>
+</div>
+
+<script>
+const SCREEN_HALF = 8;
+const MASK_SIZE = 16;
+const OVERLAY_COLORS = [
+  "rgb(0,114,178)",
+  "rgb(213,94,0)",
+  "rgb(0,158,115)",
+  "rgb(204,121,167)",
+  "rgb(86,180,233)"
+];
+let scheduled = false;
+let currentCamera = { eye: { x: 1.45, y: -1.75, z: 1.05 } };
+let plot3dEventsBound = false;
+
+function getVal(id) {
+  return parseFloat(document.getElementById(id).value);
+}
+
+function setVal(id, value) {
+  document.getElementById(id).value = value;
+}
+
+function getParams() {
+  let a = getVal("a");
+  let L = getVal("L");
+  if (L <= a + 0.5) {
+    L = a + 0.5;
+    setVal("L", L);
+  }
+  let X0 = getVal("X0");
+  let Y0 = getVal("Y0");
+  const lineMode = document.getElementById("lineMode").checked;
+  const lineCX = getVal("lineCX");
+  const lineCY = getVal("lineCY");
+  const lineAngle = getVal("lineAngle");
+  const lineS = getVal("lineS");
+
+  if (lineMode) {
+    const phi = lineAngle * Math.PI / 180;
+    X0 = lineCX + lineS * Math.cos(phi);
+    Y0 = lineCY + lineS * Math.sin(phi);
+    X0 = Math.max(-SCREEN_HALF, Math.min(SCREEN_HALF, X0));
+    Y0 = Math.max(-SCREEN_HALF, Math.min(SCREEN_HALF, Y0));
+  }
+
+  return {
+    X0,
+    Y0,
+    lineMode,
+    lineCX,
+    lineCY,
+    lineAngle,
+    lineS,
+    a,
+    L,
+    shape: document.getElementById("shape").value,
+    r: getVal("r"),
+    apX: getVal("apX"),
+    apY: getVal("apY"),
+    maskSize: MASK_SIZE,
+    sourceWidth: getVal("sourceWidth"),
+    sourceHeight: getVal("sourceHeight"),
+    rayCount: Math.round(getVal("rayCount")),
+    screenRes: Math.round(getVal("screenRes")),
+    overlayCount: Math.round(getVal("overlayCount")),
+    smoothPasses: Math.round(getVal("smoothPasses")),
+    showGrad1: document.getElementById("showGrad1").checked,
+    showGrad2: document.getElementById("showGrad2").checked,
+    showOverlay: document.getElementById("showOverlay").checked
+  };
+}
+
+function updateLabels(p = null) {
+  const ids = ["X0", "Y0", "lineCX", "lineCY", "lineAngle", "lineS", "r", "apX", "apY", "a", "L", "sourceWidth", "sourceHeight", "rayCount", "screenRes", "overlayCount", "smoothPasses"];
+  for (const id of ids) {
+    const value = getVal(id);
+    const text = (id === "rayCount" || id === "screenRes" || id === "overlayCount" || id === "smoothPasses" || id === "lineAngle")
+      ? String(Math.round(value))
+      : value.toFixed(2);
+    document.getElementById(id + "v").textContent = text;
+  }
+
+  if (p && p.lineMode) {
+    document.getElementById("X0v").textContent = p.X0.toFixed(2);
+    document.getElementById("Y0v").textContent = p.Y0.toFixed(2);
+  }
+
+  const directDisabled = p && p.lineMode;
+  const lineDisabled = !(p && p.lineMode);
+
+  document.getElementById("X0").disabled = directDisabled;
+  document.getElementById("Y0").disabled = directDisabled;
+
+  document.getElementById("lineCX").disabled = lineDisabled;
+  document.getElementById("lineCY").disabled = lineDisabled;
+  document.getElementById("lineAngle").disabled = lineDisabled;
+  document.getElementById("lineS").disabled = lineDisabled;
+}
+
+function linspace(min, max, n) {
+  const arr = [];
+  if (n === 1) return [(min + max) / 2];
+  for (let i = 0; i < n; i++) {
+    arr.push(min + (max - min) * i / (n - 1));
+  }
+  return arr;
+}
+
+function makeSourcePoints(p, n) {
+  const pts = [];
+  const nx = Math.max(2, Math.round(Math.sqrt(n * p.sourceWidth / Math.max(p.sourceHeight, 0.1))));
+  const ny = Math.max(2, Math.round(n / nx));
+  const xs = linspace(-p.sourceWidth / 2, p.sourceWidth / 2, nx);
+  const ys = linspace(-p.sourceHeight / 2, p.sourceHeight / 2, ny);
+  for (const x of xs) {
+    for (const y of ys) {
+      pts.push([x, y]);
+    }
+  }
+  return pts;
+}
+
+
+function makeOverlaySourcePoints(p, n) {
+  // Erzeugt wenige, gut verteilte Beispielpunkte auf der Lichtquelle.
+  // n=1: Mittelpunkt.
+  // Sonst: gleichmäßig entlang der langen Achse verteilt.
+  const pts = [];
+  if (n <= 0) return pts;
+
+  const alongY = (p.sourceHeight >= p.sourceWidth);
+
+  if (n === 1) {
+    return [[0, 0]];
+  }
+
+  if (alongY) {
+    const ys = linspace(-p.sourceHeight / 2, p.sourceHeight / 2, n);
+    for (const y of ys) {
+      pts.push([0, y]);
+    }
+  } else {
+    const xs = linspace(-p.sourceWidth / 2, p.sourceWidth / 2, n);
+    for (const x of xs) {
+      pts.push([x, 0]);
+    }
+  }
+  return pts;
+}
+
+function polygonVertices(shape, r, cx, cy) {
+  if (shape === "diamond") {
+    return [
+      [cx + r, cy],
+      [cx, cy + r],
+      [cx - r, cy],
+      [cx, cy - r]
+    ];
+  }
+
+  if (shape === "triangle") {
+    return [
+      [cx, cy + r],
+      [cx - 0.95 * r, cy - 0.75 * r],
+      [cx + 0.95 * r, cy - 0.75 * r]
+    ];
+  }
+
+  if (shape === "asymmetric") {
+    return [
+      [cx - 0.95 * r, cy + 0.55 * r],
+      [cx - 0.20 * r, cy + 1.00 * r],
+      [cx + 0.90 * r, cy + 0.35 * r],
+      [cx + 0.55 * r, cy - 0.80 * r],
+      [cx - 0.70 * r, cy - 0.95 * r]
+    ];
+  }
+
+  if (shape === "fshape") {
+    return [
+      [cx - 0.75 * r, cy + 1.00 * r],
+      [cx + 0.85 * r, cy + 1.00 * r],
+      [cx + 0.85 * r, cy + 0.55 * r],
+      [cx - 0.10 * r, cy + 0.55 * r],
+      [cx - 0.10 * r, cy + 0.15 * r],
+      [cx + 0.50 * r, cy + 0.15 * r],
+      [cx + 0.50 * r, cy - 0.25 * r],
+      [cx - 0.10 * r, cy - 0.25 * r],
+      [cx - 0.10 * r, cy - 1.00 * r],
+      [cx - 0.75 * r, cy - 1.00 * r]
+    ];
+  }
+
+  return [];
+}
+
+function circleVertices(r, cx, cy, n = 96) {
+  const verts = [];
+  for (let i = 0; i < n; i++) {
+    const phi = 2 * Math.PI * i / n;
+    verts.push([cx + r * Math.cos(phi), cy + r * Math.sin(phi)]);
+  }
+  return verts;
+}
+
+function apertureOutline2D(p) {
+  if (p.shape === "circle") {
+    return circleVertices(p.r, p.apX, p.apY, 96);
+  }
+  return polygonVertices(p.shape, p.r, p.apX, p.apY);
+}
+
+function pointInPolygon(x, y, verts) {
+  let inside = false;
+  for (let i = 0, j = verts.length - 1; i < verts.length; j = i++) {
+    const xi = verts[i][0], yi = verts[i][1];
+    const xj = verts[j][0], yj = verts[j][1];
+    const intersect = ((yi > y) !== (yj > y)) &&
+      (x < (xj - xi) * (y - yi) / ((yj - yi) || 1e-12) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function insideAperture(x, y, p) {
+  if (p.shape === "circle") {
+    const dx = x - p.apX;
+    const dy = y - p.apY;
+    return dx * dx + dy * dy <= p.r * p.r;
+  }
+  return pointInPolygon(x, y, polygonVertices(p.shape, p.r, p.apX, p.apY));
+}
+
+function rayPasses(xs, ys, X0, Y0, p) {
+  const t = p.a / p.L;
+  const xa = xs + t * (X0 - xs);
+  const ya = ys + t * (Y0 - ys);
+  return { ok: insideAperture(xa, ya, p), xa, ya };
+}
+
+function brightnessStatsAt(X, Y, p, pts = null) {
+  const sourcePts = pts || makeSourcePoints(p, 250);
+  let count = 0;
+  for (const [xs, ys] of sourcePts) {
+    if (rayPasses(xs, ys, X, Y, p).ok) {
+      count++;
+    }
+  }
+  return {
+    visible: count,
+    total: sourcePts.length,
+    fraction: count / sourcePts.length
+  };
+}
+
+function brightnessAt(X, Y, p, pts = null) {
+  return brightnessStatsAt(X, Y, p, pts).fraction;
+}
+
+function rectOutline(cx, cy, w, h, z) {
+  const x0 = cx - w / 2;
+  const x1 = cx + w / 2;
+  const y0 = cy - h / 2;
+  const y1 = cy + h / 2;
+  return {
+    x: [x0, x1, x1, x0, x0],
+    y: [y0, y0, y1, y1, y0],
+    z: [z, z, z, z, z]
+  };
+}
+
+function closedOutline3D(verts, z) {
+  return {
+    x: verts.map(v => v[0]).concat([verts[0][0]]),
+    y: verts.map(v => v[1]).concat([verts[0][1]]),
+    z: verts.map(_ => z).concat([z])
+  };
+}
+
+function cross2(ax, ay, bx, by) {
+  return ax * by - ay * bx;
+}
+
+function outerRadiusSquare(cx, cy, dx, dy, m) {
+  let candidates = [];
+
+  if (Math.abs(dx) > 1e-12) {
+    let t1 = (m - cx) / dx;
+    let y1 = cy + t1 * dy;
+    if (t1 > 0 && y1 >= -m - 1e-9 && y1 <= m + 1e-9) candidates.push(t1);
+
+    let t2 = (-m - cx) / dx;
+    let y2 = cy + t2 * dy;
+    if (t2 > 0 && y2 >= -m - 1e-9 && y2 <= m + 1e-9) candidates.push(t2);
+  }
+
+  if (Math.abs(dy) > 1e-12) {
+    let t3 = (m - cy) / dy;
+    let x3 = cx + t3 * dx;
+    if (t3 > 0 && x3 >= -m - 1e-9 && x3 <= m + 1e-9) candidates.push(t3);
+
+    let t4 = (-m - cy) / dy;
+    let x4 = cx + t4 * dx;
+    if (t4 > 0 && x4 >= -m - 1e-9 && x4 <= m + 1e-9) candidates.push(t4);
+  }
+
+  return Math.min(...candidates);
+}
+
+function innerRadiusPolygonAlongRay(cx, cy, dx, dy, verts) {
+  let best = Infinity;
+
+  for (let i = 0; i < verts.length; i++) {
+    const j = (i + 1) % verts.length;
+    const x1 = verts[i][0];
+    const y1 = verts[i][1];
+    const ex = verts[j][0] - x1;
+    const ey = verts[j][1] - y1;
+
+    const denom = cross2(dx, dy, ex, ey);
+    if (Math.abs(denom) < 1e-12) continue;
+
+    const px = x1 - cx;
+    const py = y1 - cy;
+
+    const t = cross2(px, py, ex, ey) / denom;
+    const u = cross2(px, py, dx, dy) / denom;
+
+    if (t > 1e-9 && u >= -1e-9 && u <= 1 + 1e-9) {
+      best = Math.min(best, t);
+    }
+  }
+
+  return best;
+}
+
+function innerRadiusAlongRay(p, dx, dy) {
+  if (p.shape === "circle") {
+    return p.r;
+  }
+
+  const verts = polygonVertices(p.shape, p.r, p.apX, p.apY);
+  const t = innerRadiusPolygonAlongRay(p.apX, p.apY, dx, dy, verts);
+
+  if (!Number.isFinite(t)) {
+    return p.r;
+  }
+
+  return t;
+}
+
+function makeMaskMesh(p) {
+  const m = p.maskSize / 2;
+  const nTheta = 220;
+
+  let x = [];
+  let y = [];
+  let z = [];
+  let i = [];
+  let j = [];
+  let k = [];
+
+  for (let n = 0; n < nTheta; n++) {
+    const phi = 2 * Math.PI * n / nTheta;
+    const dx = Math.cos(phi);
+    const dy = Math.sin(phi);
+
+    const tOuter = outerRadiusSquare(p.apX, p.apY, dx, dy, m);
+    let tInner = innerRadiusAlongRay(p, dx, dy);
+
+    if (!Number.isFinite(tOuter)) continue;
+    if (!Number.isFinite(tInner)) tInner = 0;
+
+    // Falls die Öffnung bis fast an den Rand der Blende geschoben wird,
+    // bleibt in dieser Richtung nur ein sehr dünner grauer Rest.
+    if (tInner > 0.985 * tOuter) {
+      tInner = 0.985 * tOuter;
+    }
+
+    x.push(p.apX + tInner * dx);
+    y.push(p.apY + tInner * dy);
+    z.push(p.a);
+
+    x.push(p.apX + tOuter * dx);
+    y.push(p.apY + tOuter * dy);
+    z.push(p.a);
+  }
+
+  for (let n = 0; n < nTheta; n++) {
+    const nn = (n + 1) % nTheta;
+    const inner1 = 2 * n;
+    const outer1 = 2 * n + 1;
+    const inner2 = 2 * nn;
+    const outer2 = 2 * nn + 1;
+
+    i.push(inner1); j.push(inner2); k.push(outer2);
+    i.push(inner1); j.push(outer2); k.push(outer1);
+  }
+
+  return {
+    type: "mesh3d",
+    x,
+    y,
+    z,
+    i,
+    j,
+    k,
+    color: "rgb(120,120,120)",
+    opacity: 0.72,
+    flatshading: true,
+    hoverinfo: "skip",
+    showlegend: false
+  };
+}
+
+function makeMaskRasterSurface(p) {
+  const m = p.maskSize / 2;
+  const n = 221;
+  const xs = linspace(-m, m, n);
+  const ys = linspace(-m, m, n);
+  const z = [];
+
+  for (let j = 0; j < n; j++) {
+    const row = [];
+    for (let i = 0; i < n; i++) {
+      row.push(insideAperture(xs[i], ys[j], p) ? null : p.a);
+    }
+    z.push(row);
+  }
+
+  return {
+    type: "surface",
+    x: xs,
+    y: ys,
+    z: z,
+    showscale: false,
+    opacity: 0.72,
+    colorscale: [[0, "rgb(120,120,120)"], [1, "rgb(120,120,120)"]],
+    hoverinfo: "skip",
+    showlegend: false
+  };
+}
+
+function makeMaskSurface(p) {
+  // Die glatte Mesh-Blende vermeidet Treppenartefakte an Raute, Kreis usw.
+  // Nur der nicht-konvexe Buchstabe F braucht die Raster-Fallback-Darstellung.
+  if (p.shape === "fshape") {
+    return makeMaskRasterSurface(p);
+  }
+  return makeMaskMesh(p);
+}
+
+
+
+
+function projectPointToScreen(xs, ys, xa, ya, p) {
+  const scale = p.L / p.a;
+  return [
+    xs + scale * (xa - xs),
+    ys + scale * (ya - ys)
+  ];
+}
+
+function getHighlightedOverlayIndices(n) {
+  return Array.from({ length: n }, (_, i) => i);
+}
+
+function make3DTraces(p) {
+  const traces = [];
+
+  const source = rectOutline(0, 0, p.sourceWidth, p.sourceHeight, 0);
+  traces.push({
+    type: "scatter3d",
+    mode: "lines",
+    x: source.x,
+    y: source.y,
+    z: source.z,
+    line: { width: 10, color: "orange" },
+    hoverinfo: "skip",
+    showlegend: false
+  });
+
+  traces.push(makeMaskSurface(p));
+
+  const outline = closedOutline3D(apertureOutline2D(p), p.a);
+  traces.push({
+    type: "scatter3d",
+    mode: "lines",
+    x: outline.x,
+    y: outline.y,
+    z: outline.z,
+    line: { width: 7, color: "rgb(85,85,85)" },
+    hoverinfo: "skip",
+    showlegend: false
+  });
+
+  const screen = rectOutline(0, 0, 2 * SCREEN_HALF, 2 * SCREEN_HALF, p.L);
+  traces.push({
+    type: "scatter3d",
+    mode: "lines",
+    x: screen.x,
+    y: screen.y,
+    z: screen.z,
+    line: { width: 4, color: "rgb(120,120,120)" },
+    hoverinfo: "skip",
+    showlegend: false
+  });
+
+  traces.push({
+    type: "scatter3d",
+    mode: "markers",
+    x: [p.X0],
+    y: [p.Y0],
+    z: [p.L],
+    marker: { size: 7, color: "red" },
+    hoverinfo: "skip",
+    showlegend: false
+  });
+
+  const pts = makeSourcePoints(p, p.rayCount);
+  let passX = [], passY = [], passZ = [];
+  let blockX = [], blockY = [], blockZ = [];
+  let visibleXs = [], visibleYs = [], blockedXs = [], blockedYs = [];
+
+  for (const [xs, ys] of pts) {
+    const test = rayPasses(xs, ys, p.X0, p.Y0, p);
+    if (test.ok) {
+      passX.push(xs, test.xa, p.X0, null);
+      passY.push(ys, test.ya, p.Y0, null);
+      passZ.push(0, p.a, p.L, null);
+      visibleXs.push(xs);
+      visibleYs.push(ys);
+    } else {
+      blockX.push(xs, test.xa, null);
+      blockY.push(ys, test.ya, null);
+      blockZ.push(0, p.a, null);
+      blockedXs.push(xs);
+      blockedYs.push(ys);
+    }
+  }
+
+  traces.push({
+    type: "scatter3d",
+    mode: "lines",
+    x: passX,
+    y: passY,
+    z: passZ,
+    line: { width: 3, color: "rgba(255,180,0,0.78)" },
+    hoverinfo: "skip",
+    showlegend: false
+  });
+
+  traces.push({
+    type: "scatter3d",
+    mode: "lines",
+    x: blockX,
+    y: blockY,
+    z: blockZ,
+    line: { width: 2.5, color: "rgba(70,70,70,0.38)" },
+    hoverinfo: "skip",
+    showlegend: false
+  });
+
+  traces.push({
+    type: "scatter3d",
+    mode: "markers",
+    x: visibleXs,
+    y: visibleYs,
+    z: visibleXs.map(_ => 0),
+    marker: { size: 3.2, color: "rgb(255,190,0)" },
+    hoverinfo: "skip",
+    showlegend: false
+  });
+
+  traces.push({
+    type: "scatter3d",
+    mode: "markers",
+    x: blockedXs,
+    y: blockedYs,
+    z: blockedXs.map(_ => 0),
+    marker: { size: 2.5, color: "rgba(70,70,70,0.38)" },
+    hoverinfo: "skip",
+    showlegend: false
+  });
+
+  // Farbige Beispiel-Zuordnung zwischen Lichtquellenpunkten und projizierten Öffnungsbildern
+  if (p.showOverlay) {
+    const overlayPts = makeOverlaySourcePoints(p, p.overlayCount);
+    const hiIdx = getHighlightedOverlayIndices(overlayPts.length);
+
+    hiIdx.forEach((idx, m) => {
+      const [xs, ys] = overlayPts[idx];
+      const color = OVERLAY_COLORS[m % OVERLAY_COLORS.length];
+      const [xc, yc] = projectPointToScreen(xs, ys, p.apX, p.apY, p);
+
+      traces.push({
+        type: "scatter3d",
+        mode: "lines+markers",
+        x: [xs, p.apX, xc],
+        y: [ys, p.apY, yc],
+        z: [0, p.a, p.L],
+        line: { width: 6, color: color },
+        marker: {
+          size: [5, 4, 5],
+          color: [color, color, color]
+        },
+        hoverinfo: "skip",
+        showlegend: false
+      });
+    });
+  }
+
+  return traces;
+}
+
+
+
+function makeOverlayTraces(p) {
+  if (!p.showOverlay) {
+    return [];
+  }
+
+  const sourcePts = makeOverlaySourcePoints(p, p.overlayCount);
+  const shapeVerts = apertureOutline2D(p);
+  const scale = p.L / p.a;
+  const traces = [];
+
+  function projectedOutline(xs, ys) {
+    const xx = [];
+    const yy = [];
+    for (const [vx, vy] of shapeVerts) {
+      xx.push(xs + scale * (vx - xs));
+      yy.push(ys + scale * (vy - ys));
+    }
+    const v0 = shapeVerts[0];
+    xx.push(xs + scale * (v0[0] - xs));
+    yy.push(ys + scale * (v0[1] - ys));
+    return [xx, yy];
+  }
+
+  for (let i = 0; i < sourcePts.length; i++) {
+    const [xs, ys] = sourcePts[i];
+    const [xx, yy] = projectedOutline(xs, ys);
+    const color = OVERLAY_COLORS[i % OVERLAY_COLORS.length];
+    const [cx, cy] = projectPointToScreen(xs, ys, p.apX, p.apY, p);
+
+    traces.push({
+      type: "scatter",
+      mode: "lines",
+      x: xx,
+      y: yy,
+      line: { width: 2.4, color: color },
+      hoverinfo: "skip",
+      showlegend: false
+    });
+
+    traces.push({
+      type: "scatter",
+      mode: "markers",
+      x: [cx],
+      y: [cy],
+      marker: { size: 7, color: color, line: { width: 1, color: "white" } },
+      hoverinfo: "skip",
+      showlegend: false
+    });
+  }
+
+  return traces;
+}
+
+function makeScreenImage(p) {
+  const xs = linspace(-SCREEN_HALF, SCREEN_HALF, p.screenRes);
+  const ys = linspace(-SCREEN_HALF, SCREEN_HALF, p.screenRes);
+  const sourcePts = makeSourcePoints(p, 220);
+
+  const I = [];
+  for (let j = 0; j < p.screenRes; j++) {
+    const row = [];
+    for (let i = 0; i < p.screenRes; i++) {
+      row.push(brightnessAt(xs[i], ys[j], p, sourcePts));
+    }
+    I.push(row);
+  }
+
+  function zerosLike(arr) {
+    return arr.map(row => row.map(_ => 0));
+  }
+
+  function smooth2D(Z, passes) {
+    let A = Z.map(row => row.slice());
+    const ny = A.length;
+    const nx = A[0].length;
+
+    for (let pass = 0; pass < passes; pass++) {
+      // horizontal [1,2,1]/4
+      const H = zerosLike(A);
+      for (let j = 0; j < ny; j++) {
+        for (let i = 0; i < nx; i++) {
+          const zm = A[j][Math.max(0, i - 1)];
+          const z0 = A[j][i];
+          const zp = A[j][Math.min(nx - 1, i + 1)];
+          H[j][i] = (zm + 2 * z0 + zp) / 4;
+        }
+      }
+
+      // vertical [1,2,1]/4
+      const V = zerosLike(H);
+      for (let j = 0; j < ny; j++) {
+        for (let i = 0; i < nx; i++) {
+          const zm = H[Math.max(0, j - 1)][i];
+          const z0 = H[j][i];
+          const zp = H[Math.min(ny - 1, j + 1)][i];
+          V[j][i] = (zm + 2 * z0 + zp) / 4;
+        }
+      }
+      A = V;
+    }
+    return A;
+  }
+
+  function gradientMagnitude(Z, dx, dy) {
+    const ny = Z.length;
+    const nx = Z[0].length;
+    const G = zerosLike(Z);
+
+    for (let j = 0; j < ny; j++) {
+      for (let i = 0; i < nx; i++) {
+        let dZdX, dZdY;
+
+        if (i === 0) dZdX = (Z[j][i+1] - Z[j][i]) / dx;
+        else if (i === nx - 1) dZdX = (Z[j][i] - Z[j][i-1]) / dx;
+        else dZdX = (Z[j][i+1] - Z[j][i-1]) / (2 * dx);
+
+        if (j === 0) dZdY = (Z[j+1][i] - Z[j][i]) / dy;
+        else if (j === ny - 1) dZdY = (Z[j][i] - Z[j-1][i]) / dy;
+        else dZdY = (Z[j+1][i] - Z[j-1][i]) / (2 * dy);
+
+        G[j][i] = Math.sqrt(dZdX * dZdX + dZdY * dZdY);
+      }
+    }
+    return G;
+  }
+
+  function laplaceAbs(Z, dx, dy) {
+    const ny = Z.length;
+    const nx = Z[0].length;
+    const L = zerosLike(Z);
+
+    for (let j = 0; j < ny; j++) {
+      for (let i = 0; i < nx; i++) {
+        const zc = Z[j][i];
+
+        const zl = (i > 0) ? Z[j][i-1] : zc;
+        const zr = (i < nx - 1) ? Z[j][i+1] : zc;
+        const zd = (j > 0) ? Z[j-1][i] : zc;
+        const zu = (j < ny - 1) ? Z[j+1][i] : zc;
+
+        const d2x = (zr - 2 * zc + zl) / (dx * dx);
+        const d2y = (zu - 2 * zc + zd) / (dy * dy);
+
+        L[j][i] = Math.abs(d2x + d2y);
+      }
+    }
+    return L;
+  }
+
+  const dx = xs[1] - xs[0];
+  const dy = ys[1] - ys[0];
+
+  let Z = I;
+  let titleMode = "Relative Helligkeit I: sichtbarer Anteil der Lichtquelle";
+  let colorbarTitle = "I";
+  let colorscale = "Greys";
+  let zmin = 0;
+  let zmax = 1;
+  const Ismooth = smooth2D(I, p.smoothPasses);
+
+  if (p.showGrad2) {
+    Z = laplaceAbs(Ismooth, dx, dy);
+    titleMode = "Knick-/Kantenstärke |∇²I|: Änderung der Steigung (geglättet)";
+    colorbarTitle = "|∇²I|";
+    colorscale = "Viridis";
+    zmin = null;
+    zmax = null;
+  } else if (p.showGrad1) {
+    Z = gradientMagnitude(Ismooth, dx, dy);
+    titleMode = "Helligkeitsänderung |∇I|: Stärke der lokalen Änderung (geglättet)";
+    colorbarTitle = "|∇I|";
+    colorscale = "Viridis";
+    zmin = null;
+    zmax = null;
+  }
+
+  const overlayTraces = makeOverlayTraces(p);
+  const lineTraces = [];
+
+  if (p.lineMode) {
+    const phi = p.lineAngle * Math.PI / 180;
+    const dxLine = Math.cos(phi);
+    const dyLine = Math.sin(phi);
+    lineTraces.push({
+      type: "scatter",
+      mode: "lines",
+      x: [p.lineCX - 20 * dxLine, p.lineCX + 20 * dxLine],
+      y: [p.lineCY - 20 * dyLine, p.lineCY + 20 * dyLine],
+      line: { width: 2, color: "rgba(220,0,0,0.55)", dash: "dash" },
+      hoverinfo: "skip",
+      showlegend: false
+    });
+  }
+
+  return {
+    traces: [
+      {
+        type: "heatmap",
+        x: xs,
+        y: ys,
+        z: Z,
+        colorscale: colorscale,
+        zmin: zmin,
+        zmax: zmax,
+        showscale: true,
+        colorbar: { title: colorbarTitle, thickness: 12, len: 0.75 },
+        hoverinfo: "skip",
+        showlegend: false
+      },
+      ...lineTraces,
+      ...overlayTraces,
+      {
+        type: "scatter",
+        mode: "markers",
+        x: [p.X0],
+        y: [p.Y0],
+        marker: { size: 12, color: "red", line: { width: 1, color: "white" } },
+        hoverinfo: "skip",
+        showlegend: false
+      }
+    ],
+    modeTitle: p.showOverlay ? titleMode + " + Beispiel-Rauten" : titleMode
+  };
+}
+
+
+function bindPlot3DEvents() {
+  const plot = document.getElementById("plot3d");
+  if (!plot || plot3dEventsBound) return;
+
+  plot3dEventsBound = true;
+
+  plot.on("plotly_relayout", function(eventData) {
+    if (eventData && eventData["scene.camera"]) {
+      currentCamera = eventData["scene.camera"];
+    }
+  });
+}
+
+function updateAll() {
+  scheduled = false;
+  const p = getParams();
+  updateLabels(p);
+
+  const stats = brightnessStatsAt(p.X0, p.Y0, p, makeSourcePoints(p, 500));
+  const b = stats.fraction;
+  document.getElementById("brightnessText").textContent = (100 * b).toFixed(1) + " %";
+  document.getElementById("brightnessFraction").innerHTML =
+    `<span style="color: rgb(210,140,0); font-weight: 650;">${stats.visible}</span>` +
+    ` / ` +
+    `<span style="color: rgb(80,80,80); font-weight: 650;">${stats.total}</span>` +
+    ` Lichtquellenpunkte sichtbar`;
+
+  Plotly.react("plot3d", make3DTraces(p), {
+    margin: { l: 0, r: 0, t: 0, b: 0 },
+    showlegend: false,
+    scene: {
+      xaxis: { title: "", range: [-8, 8], showspikes: false },
+      yaxis: { title: "", range: [-8, 8], showspikes: false },
+      zaxis: { title: "", range: [0, p.L], showspikes: false },
+      aspectmode: "manual",
+      aspectratio: { x: 1, y: 1, z: 1.3 },
+      camera: currentCamera
+    },
+    uirevision: "keep-camera"
+  }, { responsive: true, displayModeBar: true }).then(bindPlot3DEvents);
+
+  const screenPlot = makeScreenImage(p);
+  Plotly.react("plotScreen", screenPlot.traces, {
+    margin: { l: 35, r: 5, t: 24, b: 30 },
+    title: { text: screenPlot.modeTitle, font: { size: 12 } },
+    showlegend: false,
+    xaxis: { title: "", scaleanchor: "y", scaleratio: 1, range: [-SCREEN_HALF, SCREEN_HALF] },
+    yaxis: { title: "", range: [-SCREEN_HALF, SCREEN_HALF] }
+  }, { responsive: true, displayModeBar: true });
+}
+
+function scheduleUpdate() {
+  if (!scheduled) {
+    scheduled = true;
+    window.requestAnimationFrame(updateAll);
+  }
+}
+
+const controls = ["X0", "Y0", "lineMode", "lineCX", "lineCY", "lineAngle", "lineS", "shape", "r", "apX", "apY", "a", "L", "sourceWidth", "sourceHeight", "rayCount", "screenRes", "overlayCount", "smoothPasses", "showOverlay", "showGrad1", "showGrad2"];
+for (const id of controls) {
+  document.getElementById(id).addEventListener("input", scheduleUpdate);
+  document.getElementById(id).addEventListener("change", scheduleUpdate);
+}
+
+
+document.getElementById("showGrad1").addEventListener("change", function() {
+  if (this.checked) {
+    document.getElementById("showGrad2").checked = false;
+  }
+  scheduleUpdate();
+});
+
+document.getElementById("showGrad2").addEventListener("change", function() {
+  if (this.checked) {
+    document.getElementById("showGrad1").checked = false;
+  }
+  scheduleUpdate();
+});
+
+updateAll();
+</script>
+</body>
+</html>

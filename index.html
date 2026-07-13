@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Halbschattenmuster: Strahlenmodell und 3D-Visualisierung.">
+  <title>Halbschattenmuster</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      display: flex;
+      min-height: 100vh;
+      margin: 0;
+      padding: 1.5rem;
+      color: #181818;
+      background: #f7f7f5;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    main {
+      width: 100%;
+      max-width: 28rem;
+      margin: auto;
+    }
+
+    h1 {
+      margin: 0 0 2rem;
+      font-size: clamp(1.65rem, 8vw, 2.85rem);
+      font-weight: 600;
+      letter-spacing: -.04em;
+    }
+
+    .actions {
+      display: grid;
+      gap: .75rem;
+    }
+
+    .action {
+      display: block;
+      padding: 1rem 1.1rem;
+      border: 1px solid #181818;
+      color: #181818;
+      background: transparent;
+      font-family: inherit;
+      font-size: 1.05rem;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .action:hover,
+    .action:focus-visible {
+      color: #fff;
+      background: #181818;
+    }
+
+    .measurement {
+      min-width: 0;
+    }
+
+    .measurement-summary {
+      position: relative;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .measurement-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .measurement-summary::after {
+      position: absolute;
+      top: 50%;
+      right: 1rem;
+      content: "+";
+      font-size: 1.25rem;
+      font-weight: 400;
+      transform: translateY(-50%);
+    }
+
+    .measurement[open] > .measurement-summary::after {
+      content: "−";
+    }
+
+    .measurement-summary span,
+    .measurement-status {
+      display: block;
+    }
+
+    .measurement-status {
+      margin-top: .2rem;
+      color: inherit;
+      font-size: .78em;
+      font-weight: 400;
+      opacity: .65;
+    }
+
+    .measurement-content {
+      padding-top: 1.5rem;
+    }
+
+    .measurement-content h2 {
+      margin: 0 0 1rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    .line-map {
+      display: block;
+      width: 100%;
+      max-width: 15rem;
+      height: auto;
+      margin: 0 auto 1rem;
+      overflow: visible;
+    }
+
+    .pattern-line {
+      fill: none;
+      stroke: #d0d0cc;
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+
+    .line-seven,
+    .line-ten {
+      fill: none;
+      stroke-width: 4;
+      stroke-linecap: round;
+    }
+
+    .line-seven {
+      stroke: #333;
+    }
+
+    .line-ten {
+      stroke: #0083a0;
+    }
+
+    .line-label circle {
+      fill: #f7f7f5;
+      stroke: currentColor;
+      stroke-width: 1.5;
+    }
+
+    .line-label text {
+      fill: currentColor;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+
+    .label-seven {
+      color: #333;
+    }
+
+    .label-ten {
+      color: #00758f;
+    }
+
+    .measurement-intent {
+      margin: 0;
+      color: #333;
+      line-height: 1.5;
+    }
+
+    .source {
+      display: inline-block;
+      margin-top: 1.5rem;
+      color: #555;
+      font-size: .9rem;
+      text-underline-offset: .2em;
+    }
+
+    a:focus-visible,
+    summary:focus-visible {
+      outline: 2px solid #181818;
+      outline-offset: 3px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Halbschattenmuster</h1>
+
+    <div class="actions">
+      <a class="action" href="https://mybinder.org/v2/gh/chgross89/halbschattenmuster-strahlenoptik/HEAD?urlpath=lab/tree/halbschattenmuster_strahlenoptik.ipynb">
+        Strahlenmodell im Notebook
+      </a>
+      <a class="action" href="halbschattenmuster_visualisierung.html">
+        Strahlengang in 3D
+      </a>
+
+      <details class="measurement">
+        <summary class="action measurement-summary">
+          <span>Messung</span>
+          <small class="measurement-status">in Vorbereitung</small>
+        </summary>
+
+        <div class="measurement-content">
+          <h2>Geplante erste systematische Messung</h2>
+
+          <svg class="line-map" viewBox="0 0 200 230" role="img" aria-labelledby="line-map-title line-map-description">
+            <title id="line-map-title">Linien 7 und 10 im Halbschattenmuster</title>
+            <desc id="line-map-description">Linie 7 ist die mittlere obere Senkrechte. Linie 10 verläuft vom oberen inneren Knoten nach rechts unten.</desc>
+
+            <g class="pattern-line" aria-hidden="true">
+              <line x1="100" y1="10" x2="20" y2="80" />
+              <line x1="100" y1="10" x2="180" y2="80" />
+              <line x1="180" y1="150" x2="100" y2="220" />
+              <line x1="20" y1="150" x2="100" y2="220" />
+              <line x1="20" y1="80" x2="20" y2="150" />
+              <line x1="180" y1="80" x2="180" y2="150" />
+              <line x1="100" y1="10" x2="100" y2="80" />
+              <line x1="100" y1="150" x2="100" y2="220" />
+              <line x1="100" y1="150" x2="180" y2="80" />
+              <line x1="100" y1="80" x2="180" y2="150" />
+              <line x1="20" y1="150" x2="100" y2="80" />
+              <line x1="20" y1="80" x2="100" y2="150" />
+            </g>
+
+            <line class="line-seven" x1="100" y1="10" x2="100" y2="80" />
+            <line class="line-ten" x1="100" y1="80" x2="180" y2="150" />
+
+            <g class="line-label label-seven" transform="translate(100 46)" aria-hidden="true">
+              <circle r="12" />
+              <text y=".5">7</text>
+            </g>
+            <g class="line-label label-ten" transform="translate(142 117)" aria-hidden="true">
+              <circle r="12" />
+              <text y=".5">10</text>
+            </g>
+          </svg>
+
+          <p class="measurement-intent">
+            Gemessen werden Helligkeitsprofile quer zu beiden Linien. Für Linie 7 zeigt das Modell im Querprofil ein flaches lokales Maximum. An Linie 10 ändert sich der Steigungsverlauf, ohne dass ein lokales Maximum entsteht.
+          </p>
+        </div>
+      </details>
+    </div>
+
+    <a class="source" href="https://github.com/chgross89/halbschattenmuster-strahlenoptik">
+      Quellcode auf GitHub
+    </a>
+  </main>
+</body>
+</html>
